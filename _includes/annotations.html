@@ -1,6 +1,18 @@
 <style>
 .ann-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#edf0e7;border:1px solid #dce3d4;border-radius:9px;padding:16px 18px;margin:0 0 30px;font-size:13px}.ann-toolbar strong{display:block;color:#263e35;font-size:15px}.ann-toolbar span{color:#596a5e}.ann-toolbar button,.ann-dialog button{font:inherit;cursor:pointer;border:1px solid #cad2c3;background:#fffefa;color:#263e35;border-radius:6px;padding:7px 12px}.ann-toolbar button{white-space:nowrap}.ann-toolbar button:hover,.ann-dialog button:hover{background:#e6ebdf}.ann-selection{position:fixed;z-index:80;right:24px;bottom:24px;background:#263e35;color:#fffefa;border:1px solid #c4cdb9;border-radius:30px;padding:13px 20px;font:14px var(--sans);box-shadow:0 5px 24px #263e3533;cursor:pointer}.ann-selection[hidden],.ann-dialog [hidden]{display:none!important}.post-content mark[data-ann-ids]{background:#f5dfa0;color:inherit;border-bottom:2px solid #bd7735;cursor:pointer;padding:1px 0;border-radius:2px}.post-content pre mark[data-ann-ids]{background:#745b23;color:#fff8df}.post-content mark.ann-focus{outline:3px solid #bd5635;outline-offset:3px}.ann-dialog{position:fixed;inset:0 0 0 auto;margin:0;width:min(440px,100%);height:100dvh;max-height:100dvh;max-width:100%;border:0;border-left:1px solid #dce3d4;padding:25px;background:#f7f6f2;color:#263e35;box-shadow:-10px 0 50px #20342922;font:14px/1.8 var(--sans);overflow-y:auto;overscroll-behavior:contain}.ann-dialog::backdrop{background:#152b2633}.ann-dialog header{display:flex;align-items:center;justify-content:space-between;gap:15px}.ann-dialog h2{font:600 26px var(--serif);margin:0}.ann-help{font-size:12px;color:#647064;line-height:1.8;margin:16px 0}.ann-dialog #ann-status{color:#a84729;font-size:13px;white-space:pre-wrap}.ann-dialog #ann-status:empty{display:none}.ann-dialog label{display:block;font-weight:600;margin-bottom:8px}.ann-dialog blockquote{margin:0 0 15px;padding:12px 15px;border-left:3px solid #bd7735;background:#ecefe4;max-height:150px;overflow:auto;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}.ann-dialog textarea{display:block;width:100%;resize:vertical;min-height:130px;max-height:45vh;border:1px solid #b9c6b1;border-radius:7px;padding:12px;background:#fffefa;color:#263e35;font:14px/1.8 var(--sans);box-sizing:border-box}.ann-dialog textarea:focus-visible{outline:2px solid #688362;outline-offset:2px}.ann-actions{display:flex;gap:9px;margin:13px 0 0}.ann-dialog .ann-primary{background:#263e35;color:white;border-color:#263e35}.ann-dialog .ann-primary:hover{background:#3c5948}.ann-tools{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid #dce3d4;padding:20px 0}.ann-tools button{font-size:12px}.ann-card{border:1px solid #dce3d4;border-radius:9px;background:#fffefa;padding:18px;margin:18px 0}.ann-card-active{border-color:#bd7735;box-shadow:0 0 0 1px #bd7735}.ann-dialog .ann-quote-link{display:block;text-align:left;width:100%;border:0;border-left:3px solid #d3a45e;border-radius:0;background:#f3efe5;font-size:12px;line-height:1.8;max-height:120px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}.ann-note{white-space:pre-wrap;overflow-wrap:anywhere;margin:15px 0}.ann-card small{font-size:11px;color:#71806f}.ann-card .ann-actions button{font-size:12px}.ann-empty{color:#647064;padding:25px 0}.ann-dialog button:focus-visible,.ann-selection:focus-visible{outline:3px solid #bd5635;outline-offset:3px}@media(max-width:620px){.ann-toolbar{padding:13px;align-items:flex-start;flex-direction:column;gap:10px}.ann-toolbar span{font-size:12px}.ann-selection{bottom:calc(18px + env(safe-area-inset-bottom));right:18px;max-width:calc(100% - 36px)}.ann-dialog{padding:20px 20px calc(25px + env(safe-area-inset-bottom))}}@media print{.ann-toolbar,.ann-selection,.ann-dialog{display:none!important}}
 
+/* Desktop notes sit beside the article in the normal reading layout. */
+@media(min-width:1100px){
+.reading-shell.ann-reading{max-width:none;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:0 28px;align-items:start}
+.ann-reading>.back-link{grid-column:1 / -1;justify-self:start}
+.ann-reading>.post{grid-column:1;min-width:0;padding:38px 36px}
+.ann-reading>.ann-dialog{grid-column:2;grid-row:2;position:sticky;top:24px;inset-inline:auto;width:100%;height:auto;max-height:calc(100dvh - 48px);min-width:0;border:1px solid #dce3d4;border-radius:12px;padding:20px;box-shadow:none}
+.ann-reading #ann-close{display:none}
+.ann-dialog h2{font-size:23px}
+.ann-card{padding:14px}
+.ann-selection{right:calc((100vw - min(1120px,100vw - 64px))/2 + 368px)}
+}
+@media print{.reading-shell.ann-reading{display:block;max-width:820px}}
 </style>
 <script>
 (() => {
@@ -25,7 +37,10 @@
     <form id="ann-form" hidden><p class="ann-quote-label">针对这段原文</p><blockquote id="ann-quote"></blockquote><label for="ann-text">我的想法</label><textarea id="ann-text" rows="6" maxlength="5000" required placeholder="记下你的理解、疑问或补充…"></textarea><div class="ann-actions"><button type="submit" class="ann-primary">保存批注</button><button type="button" id="ann-cancel">取消</button></div></form>
     <div class="ann-tools"><button type="button" id="ann-export">导出备份</button><button type="button" id="ann-import">导入备份</button><button type="button" id="ann-undo" hidden>撤销删除</button><input type="file" id="ann-file" accept=".json,application/json" hidden></div>
     <div id="ann-list"></div>`;
-  document.body.append(dialog);
+  const reading = content.closest('.reading-shell');
+  reading.classList.add('ann-reading');
+  reading.append(dialog);
+  const desktop = window.matchMedia('(min-width: 1100px)');
   const $ = id => dialog.querySelector('#ann-' + id);
   let records = [], candidate = null, draft = null, draftBase = null, undoId = null;
   let loadError = false;
@@ -115,7 +130,10 @@
   }
   function show() {
     action.hidden = true;
-    if (!dialog.open) dialog.showModal();
+    if (!dialog.open) {
+      if (desktop.matches) dialog.show();
+      else dialog.showModal();
+    }
   }
   function clearDraft() {
     draft = null; draftBase = null; $('form').hidden = true; $('text').value = '';
@@ -132,7 +150,7 @@
     if (!discard()) return;
     const marks = [...content.querySelectorAll('mark[data-ann-ids]')].filter(m => m.dataset.annIds.split(' ').includes(note.id));
     if (!marks.length) { status('原文已变动，暂时无法定位。这条批注仍完整保留。'); return; }
-    clearDraft(); dialog.close();
+    clearDraft(); if (!desktop.matches) dialog.close();
     const mark = marks[0];
     for (let el = mark.parentElement; el && el !== content; el = el.parentElement) if (el.tagName === 'DETAILS') el.open = true;
     mark.scrollIntoView({behavior: 'smooth', block: 'center'});
@@ -140,10 +158,10 @@
   }
   function render() {
     paint();
-    const notes = records.filter(n => !n.deletedAt).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
+    const notes = records.filter(n => !n.deletedAt).sort((a,b) => (locate(a, content.textContent)?.start ?? Infinity) - (locate(b, content.textContent)?.start ?? Infinity) || a.createdAt.localeCompare(b.createdAt));
     ui.querySelector('#ann-count').textContent = notes.length;
     $('list').replaceChildren();
-    if (!notes.length) { const p = document.createElement('p'); p.className = 'ann-empty'; p.textContent = '还没有批注。关闭面板，选中正文中的一行或一段文字，写下第一条想法。'; $('list').append(p); }
+    if (!notes.length) { const p = document.createElement('p'); p.className = 'ann-empty'; p.textContent = '还没有批注。选中正文中的一行或一段文字，即可写下第一条想法；小屏幕请先关闭面板。'; $('list').append(p); }
     for (const note of notes) {
       const card = document.createElement('article'); card.className = 'ann-card'; card.dataset.noteId = note.id;
       const quote = button(note.quote, () => jump(note)); quote.className = 'ann-quote-link'; quote.title = '定位原文';
@@ -162,7 +180,7 @@
     }
   }
   function capture() {
-    if (dialog.open) return;
+    if (dialog.open && !desktop.matches) return;
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !selection.rangeCount) { candidate = null; action.hidden = true; return; }
     const range = selection.getRangeAt(0);
@@ -229,7 +247,13 @@
     if (card) { card.classList.add('ann-card-active'); card.scrollIntoView({block:'nearest'}); }
   });
   window.addEventListener('storage', event => { if (event.key===KEY) { candidate=null; action.hidden=true; load(); render(); } });
+  desktop.addEventListener('change', () => {
+    const wasOpen = dialog.open;
+    if (wasOpen) dialog.close();
+    if (desktop.matches || wasOpen) show();
+  });
   load(); render();
+  if (desktop.matches) show();
 })();
 
 </script>
