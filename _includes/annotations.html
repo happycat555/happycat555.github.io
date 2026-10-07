@@ -1,0 +1,235 @@
+<style>
+.ann-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#edf0e7;border:1px solid #dce3d4;border-radius:9px;padding:16px 18px;margin:0 0 30px;font-size:13px}.ann-toolbar strong{display:block;color:#263e35;font-size:15px}.ann-toolbar span{color:#596a5e}.ann-toolbar button,.ann-dialog button{font:inherit;cursor:pointer;border:1px solid #cad2c3;background:#fffefa;color:#263e35;border-radius:6px;padding:7px 12px}.ann-toolbar button{white-space:nowrap}.ann-toolbar button:hover,.ann-dialog button:hover{background:#e6ebdf}.ann-selection{position:fixed;z-index:80;right:24px;bottom:24px;background:#263e35;color:#fffefa;border:1px solid #c4cdb9;border-radius:30px;padding:13px 20px;font:14px var(--sans);box-shadow:0 5px 24px #263e3533;cursor:pointer}.ann-selection[hidden],.ann-dialog [hidden]{display:none!important}.post-content mark[data-ann-ids]{background:#f5dfa0;color:inherit;border-bottom:2px solid #bd7735;cursor:pointer;padding:1px 0;border-radius:2px}.post-content pre mark[data-ann-ids]{background:#745b23;color:#fff8df}.post-content mark.ann-focus{outline:3px solid #bd5635;outline-offset:3px}.ann-dialog{position:fixed;inset:0 0 0 auto;margin:0;width:min(440px,100%);height:100dvh;max-height:100dvh;max-width:100%;border:0;border-left:1px solid #dce3d4;padding:25px;background:#f7f6f2;color:#263e35;box-shadow:-10px 0 50px #20342922;font:14px/1.8 var(--sans);overflow-y:auto;overscroll-behavior:contain}.ann-dialog::backdrop{background:#152b2633}.ann-dialog header{display:flex;align-items:center;justify-content:space-between;gap:15px}.ann-dialog h2{font:600 26px var(--serif);margin:0}.ann-help{font-size:12px;color:#647064;line-height:1.8;margin:16px 0}.ann-dialog #ann-status{color:#a84729;font-size:13px;white-space:pre-wrap}.ann-dialog #ann-status:empty{display:none}.ann-dialog label{display:block;font-weight:600;margin-bottom:8px}.ann-dialog blockquote{margin:0 0 15px;padding:12px 15px;border-left:3px solid #bd7735;background:#ecefe4;max-height:150px;overflow:auto;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}.ann-dialog textarea{display:block;width:100%;resize:vertical;min-height:130px;max-height:45vh;border:1px solid #b9c6b1;border-radius:7px;padding:12px;background:#fffefa;color:#263e35;font:14px/1.8 var(--sans);box-sizing:border-box}.ann-dialog textarea:focus-visible{outline:2px solid #688362;outline-offset:2px}.ann-actions{display:flex;gap:9px;margin:13px 0 0}.ann-dialog .ann-primary{background:#263e35;color:white;border-color:#263e35}.ann-dialog .ann-primary:hover{background:#3c5948}.ann-tools{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid #dce3d4;padding:20px 0}.ann-tools button{font-size:12px}.ann-card{border:1px solid #dce3d4;border-radius:9px;background:#fffefa;padding:18px;margin:18px 0}.ann-card-active{border-color:#bd7735;box-shadow:0 0 0 1px #bd7735}.ann-dialog .ann-quote-link{display:block;text-align:left;width:100%;border:0;border-left:3px solid #d3a45e;border-radius:0;background:#f3efe5;font-size:12px;line-height:1.8;max-height:120px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}.ann-note{white-space:pre-wrap;overflow-wrap:anywhere;margin:15px 0}.ann-card small{font-size:11px;color:#71806f}.ann-card .ann-actions button{font-size:12px}.ann-empty{color:#647064;padding:25px 0}.ann-dialog button:focus-visible,.ann-selection:focus-visible{outline:3px solid #bd5635;outline-offset:3px}@media(max-width:620px){.ann-toolbar{padding:13px;align-items:flex-start;flex-direction:column;gap:10px}.ann-toolbar span{font-size:12px}.ann-selection{bottom:calc(18px + env(safe-area-inset-bottom));right:18px;max-width:calc(100% - 36px)}.ann-dialog{padding:20px 20px calc(25px + env(safe-area-inset-bottom))}}@media print{.ann-toolbar,.ann-selection,.ann-dialog{display:none!important}}
+
+</style>
+<script>
+(() => {
+  'use strict';
+  const content = document.querySelector('.post-content');
+  if (!content) return;
+  const KEY = 'happycat.annotations.v1:' + location.pathname;
+  const LIMIT = 500;
+  const ui = document.createElement('section');
+  ui.className = 'ann-toolbar';
+  ui.innerHTML = '<div><strong>边读边记</strong><span>选中一行或一段文字，即可添加个人批注。</span></div><button type="button" id="ann-open">我的批注 <span id="ann-count">0</span></button>';
+  content.before(ui);
+  const action = document.createElement('button');
+  action.type = 'button'; action.className = 'ann-selection'; action.hidden = true;
+  action.textContent = '＋ 批注选中文字';
+  document.body.append(action);
+  const dialog = document.createElement('dialog');
+  dialog.className = 'ann-dialog'; dialog.setAttribute('aria-labelledby', 'ann-title');
+  dialog.innerHTML = `<header><h2 id="ann-title">我的批注</h2><button type="button" id="ann-close" aria-label="关闭批注面板">✕</button></header>
+    <p class="ann-help">仅保存在当前浏览器，不会公开。清除浏览器数据会丢失批注，请定期导出备份。</p>
+    <p id="ann-status" role="status" aria-live="polite"></p>
+    <form id="ann-form" hidden><p class="ann-quote-label">针对这段原文</p><blockquote id="ann-quote"></blockquote><label for="ann-text">我的想法</label><textarea id="ann-text" rows="6" maxlength="5000" required placeholder="记下你的理解、疑问或补充…"></textarea><div class="ann-actions"><button type="submit" class="ann-primary">保存批注</button><button type="button" id="ann-cancel">取消</button></div></form>
+    <div class="ann-tools"><button type="button" id="ann-export">导出备份</button><button type="button" id="ann-import">导入备份</button><button type="button" id="ann-undo" hidden>撤销删除</button><input type="file" id="ann-file" accept=".json,application/json" hidden></div>
+    <div id="ann-list"></div>`;
+  document.body.append(dialog);
+  const $ = id => dialog.querySelector('#ann-' + id);
+  let records = [], candidate = null, draft = null, draftBase = null, undoId = null;
+  let loadError = false;
+  const valid = n => n && typeof n.id === 'string' && /^[\w-]{1,100}$/.test(n.id)
+    && typeof n.quote === 'string' && n.quote.trim().length > 0 && n.quote.length <= 2000
+    && typeof n.text === 'string' && n.text.trim().length > 0 && n.text.length <= 5000
+    && Number.isSafeInteger(n.start) && n.start >= 0
+    && typeof n.prefix === 'string' && n.prefix.length <= 80
+    && typeof n.suffix === 'string' && n.suffix.length <= 80
+    && typeof n.createdAt === 'string' && Number.isFinite(Date.parse(n.createdAt))
+    && typeof n.updatedAt === 'string' && Number.isFinite(Date.parse(n.updatedAt))
+    && (n.deletedAt == null || (typeof n.deletedAt === 'string' && Number.isFinite(Date.parse(n.deletedAt))));
+  function read() {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return [];
+    const data = JSON.parse(raw);
+    if (data.version !== 1 || !Array.isArray(data.notes) || data.notes.length > LIMIT || !data.notes.every(valid)
+      || new Set(data.notes.map(n => n.id)).size !== data.notes.length) throw Error('invalid');
+    return data.notes;
+  }
+  function status(message) { $('status').textContent = message; }
+  function load() {
+    try { records = read(); loadError = false;
+      undoId = records.filter(n => n.deletedAt).sort((a,b) => b.deletedAt.localeCompare(a.deletedAt))[0]?.id || null;
+      $('undo').hidden = !undoId; }
+    catch { loadError = true; status('无法读取浏览器中的批注。请检查浏览器存储权限；已有数据不会被覆盖。'); }
+  }
+  function write(update) {
+    try {
+      const latest = read();
+      const next = update(latest);
+      if (!next) return false;
+      if (next.length > LIMIT) { status('批注已达到容量上限，请先导出备份。'); return false; }
+      localStorage.setItem(KEY, JSON.stringify({version: 1, notes: next}));
+      records = next; loadError = false; render(); return true;
+    } catch { status('未能保存。浏览器存储可能不可用或已满，输入内容仍保留在面板中。'); return false; }
+  }
+  function textNodes() {
+    const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+    const result = []; let node, offset = 0;
+    while ((node = walker.nextNode())) {
+      result.push({node, start: offset, end: offset + node.length}); offset += node.length;
+    }
+    return result;
+  }
+  function locate(note, text) {
+    // Offsets are only a hint; quotes and context survive unrelated article edits.
+    const matches = []; let at = text.indexOf(note.quote);
+    while (at !== -1) { matches.push(at); at = text.indexOf(note.quote, at + 1); }
+    if (!matches.length) return null;
+    if (matches.length === 1) return {start: matches[0], end: matches[0] + note.quote.length};
+    const scored = matches.map(start => ({start, score:
+      (note.prefix && text.slice(Math.max(0, start - note.prefix.length), start) === note.prefix ? 2 : 0)
+      + (note.suffix && text.slice(start + note.quote.length, start + note.quote.length + note.suffix.length) === note.suffix ? 2 : 0)}));
+    scored.sort((a, b) => b.score - a.score);
+    let best = scored[0];
+    if (best.score === scored[1].score) {
+      best = scored.find(m => m.start === note.start && m.score === 4);
+      if (!best) return null; // Ambiguous quotes must never point to an arbitrary occurrence.
+    }
+    return {start: best.start, end: best.start + note.quote.length};
+  }
+  function paint() {
+    for (const mark of content.querySelectorAll('mark[data-ann-ids]')) mark.replaceWith(...mark.childNodes);
+    content.normalize();
+    const text = content.textContent;
+    const ranges = records.filter(n => !n.deletedAt).map(n => ({...locate(n, text), id: n.id})).filter(n => n.start != null);
+    for (const {node, start, end} of textNodes()) {
+      const hits = ranges.filter(r => r.start < end && r.end > start);
+      if (!hits.length) continue;
+      const cuts = [...new Set([0, node.length, ...hits.flatMap(r => [Math.max(0, r.start - start), Math.min(node.length, r.end - start)])])].sort((a,b) => a-b);
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < cuts.length-1; i++) {
+        const a = cuts[i], b = cuts[i+1];
+        const ids = hits.filter(r => r.start < start+b && r.end > start+a).map(r => r.id);
+        const part = document.createTextNode(node.data.slice(a,b));
+        if (!ids.length) { frag.append(part); continue; }
+        const mark = document.createElement('mark'); mark.dataset.annIds = ids.join(' ');
+        mark.title = '点击查看批注'; mark.append(part); frag.append(mark);
+      }
+      node.replaceWith(frag);
+    }
+  }
+  function button(label, callback) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = label;
+    b.addEventListener('click', callback); return b;
+  }
+  function show() {
+    action.hidden = true;
+    if (!dialog.open) dialog.showModal();
+  }
+  function clearDraft() {
+    draft = null; draftBase = null; $('form').hidden = true; $('text').value = '';
+  }
+  function hasUnsaved() { return draft && $('text').value.trim() !== (draft.text || ''); }
+  function discard() { return !hasUnsaved() || window.confirm('放弃尚未保存的批注内容？'); }
+  function edit(note) {
+    if (!discard()) return;
+    draft = {...note}; draftBase = note.updatedAt || null;
+    $('quote').textContent = note.quote; $('text').value = note.text || '';
+    $('form').hidden = false; status(''); show(); $('text').focus();
+  }
+  function jump(note) {
+    if (!discard()) return;
+    const marks = [...content.querySelectorAll('mark[data-ann-ids]')].filter(m => m.dataset.annIds.split(' ').includes(note.id));
+    if (!marks.length) { status('原文已变动，暂时无法定位。这条批注仍完整保留。'); return; }
+    clearDraft(); dialog.close();
+    const mark = marks[0];
+    for (let el = mark.parentElement; el && el !== content; el = el.parentElement) if (el.tagName === 'DETAILS') el.open = true;
+    mark.scrollIntoView({behavior: 'smooth', block: 'center'});
+    mark.classList.add('ann-focus'); setTimeout(() => mark.classList.remove('ann-focus'), 2000);
+  }
+  function render() {
+    paint();
+    const notes = records.filter(n => !n.deletedAt).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
+    ui.querySelector('#ann-count').textContent = notes.length;
+    $('list').replaceChildren();
+    if (!notes.length) { const p = document.createElement('p'); p.className = 'ann-empty'; p.textContent = '还没有批注。关闭面板，选中正文中的一行或一段文字，写下第一条想法。'; $('list').append(p); }
+    for (const note of notes) {
+      const card = document.createElement('article'); card.className = 'ann-card'; card.dataset.noteId = note.id;
+      const quote = button(note.quote, () => jump(note)); quote.className = 'ann-quote-link'; quote.title = '定位原文';
+      const text = document.createElement('p'); text.textContent = note.text; text.className = 'ann-note';
+      const meta = document.createElement('small'); meta.textContent = new Date(note.updatedAt).toLocaleString('zh-CN', {hour12:false});
+      const tools = document.createElement('div'); tools.className = 'ann-actions';
+      tools.append(button('编辑', () => edit(note)), button('删除', () => {
+        if (draft?.id === note.id && !discard()) return;
+        if (write(latest => latest.map(n => n.id === note.id ? {...n, deletedAt:new Date().toISOString()} : n))) {
+          if (draft?.id === note.id) clearDraft(); undoId = note.id; $('undo').hidden = false; status('已删除，可点击“撤销删除”恢复。');
+        }
+      }));
+      card.append(quote, text, meta, tools);
+      if (!locate(note, content.textContent)) { const hint = document.createElement('p'); hint.className = 'ann-help'; hint.textContent = '原文已变动，暂时无法定位'; card.append(hint); }
+      $('list').append(card);
+    }
+  }
+  function capture() {
+    if (dialog.open) return;
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !selection.rangeCount) { candidate = null; action.hidden = true; return; }
+    const range = selection.getRangeAt(0);
+    if (!content.contains(range.startContainer) || !content.contains(range.endContainer)) { candidate = null; action.hidden = true; return; }
+    const quote = range.toString();
+    if (!quote.trim() || quote.length > 2000) { candidate = null; action.hidden = true; return; }
+    const before = document.createRange(); before.selectNodeContents(content); before.setEnd(range.startContainer, range.startOffset);
+    const start = before.toString().length, text = content.textContent;
+    candidate = {start, quote, prefix:text.slice(Math.max(0,start-48),start), suffix:text.slice(start+quote.length,start+quote.length+48)};
+    action.hidden = false;
+  }
+  document.addEventListener('selectionchange', capture);
+  content.addEventListener('pointerup', () => setTimeout(capture,0));
+  action.addEventListener('pointerdown', e => e.preventDefault());
+  action.addEventListener('click', () => { if (candidate) edit({...candidate, text:''}); });
+  ui.querySelector('#ann-open').addEventListener('click', () => { load(); render(); show(); });
+  $('close').addEventListener('click', () => { if (discard()) { clearDraft(); dialog.close(); } });
+  dialog.addEventListener('cancel', e => { if (!discard()) e.preventDefault(); else clearDraft(); });
+  $('cancel').addEventListener('click', () => { if (discard()) clearDraft(); });
+  $('form').addEventListener('submit', event => {
+    event.preventDefault();
+    const text = $('text').value.trim(); if (!draft || !text || text.length > 5000) return;
+    const now = new Date().toISOString();
+    const note = {...draft, text, id:draft.id || crypto.randomUUID(), createdAt:draft.createdAt || now, updatedAt:now};
+    if (write(latest => {
+      if (draft.id) {
+        const saved = latest.find(n => n.id === draft.id);
+        if (!saved || saved.deletedAt || saved.updatedAt !== draftBase) { status('这条批注已在其他标签页修改。请先备份当前输入，再取消并重新打开批注。'); return null; }
+      }
+      return [...latest.filter(n => n.id !== note.id), note];
+    })) { clearDraft(); window.getSelection()?.removeAllRanges(); candidate=null; action.hidden=true; status('批注已保存，刷新页面后仍会保留。'); }
+  });
+  $('undo').addEventListener('click', () => {
+    if (undoId && write(latest => latest.map(n => n.id === undoId ? {...n, deletedAt:null} : n))) { undoId=null; $('undo').hidden=true; status('已恢复批注。'); }
+  });
+  $('export').addEventListener('click', () => {
+    load(); if (loadError) return;
+    const blob = new Blob([JSON.stringify({version:1, path:location.pathname, title:document.title, notes:records},null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href=url;
+    link.download='happycat-annotations-'+location.pathname.split('/').filter(Boolean).pop()+'.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url),1000);
+    status('已导出备份。换设备时，可在同一篇文章里导入此文件。');
+  });
+  $('import').addEventListener('click', () => $('file').click());
+  $('file').addEventListener('change', async () => {
+    const file = $('file').files[0]; if (!file) return;
+    try {
+      if (file.size > 5*1024*1024) throw Error('备份文件过大。');
+      const data = JSON.parse(await file.text());
+      if (data.version !== 1 || data.path !== location.pathname) throw Error('请选择这篇文章导出的批注备份。');
+      if (!Array.isArray(data.notes) || data.notes.length > LIMIT || !data.notes.every(valid) || new Set(data.notes.map(n=>n.id)).size !== data.notes.length) throw Error('备份格式无效，未更改现有批注。');
+      if (write(latest => {
+        const merged = new Map(latest.map(n => [n.id,n]));
+        for (const n of data.notes) if (!merged.has(n.id)) merged.set(n.id,n);
+        return [...merged.values()];
+      })) status('备份已合并；已有批注保留，不会被覆盖。');
+    } catch (error) { status(error instanceof SyntaxError ? '文件不是有效的 JSON 备份，未更改现有批注。' : error.message); }
+    finally { $('file').value=''; }
+  });
+  content.addEventListener('click', event => {
+    const mark = event.target.closest('mark[data-ann-ids]');
+    if (!mark || !window.getSelection()?.isCollapsed) return;
+    event.preventDefault(); load(); render(); show();
+    const card = [...$('list').children].find(c => mark.dataset.annIds.split(' ').includes(c.dataset.noteId));
+    if (card) { card.classList.add('ann-card-active'); card.scrollIntoView({block:'nearest'}); }
+  });
+  window.addEventListener('storage', event => { if (event.key===KEY) { candidate=null; action.hidden=true; load(); render(); } });
+  load(); render();
+})();
+
+</script>
