@@ -1,0 +1,36 @@
+---
+layout: default
+---
+<section class="hero" aria-labelledby="welcome-title">
+<div><div class="eyebrow"><span class="dot"></span> HAPPY CAT · PERSONAL JOURNAL</div>
+<h1 id="welcome-title">把日常的点滴，<br>写成<em>值得收藏的故事。</em></h1>
+<p class="hero-description">你好，我是 HappyCat。<br>在这里记录学习、技术与生活，<br>保持好奇，慢慢积累，也认真感受每一个平凡的日子。</p>
+<div class="hero-actions"><a class="button" href="#journal">开始阅读 <span aria-hidden="true">↗</span></a><a class="text-link" href="{{ '/about/' | relative_url }}">认识一下我 →</a></div></div>
+<div class="hero-art">
+<svg viewBox="0 0 400 370" role="img" aria-labelledby="cat-title"><title id="cat-title">一只小猫坐在书本旁，身边有绿植和温暖的太阳</title>
+<circle cx="209" cy="175" r="141" fill="#eeeadd"/><circle cx="280" cy="81" r="31" fill="#dc9870"/>
+<path d="M50 309H363" stroke="#bdc7b4" stroke-width="2" stroke-linecap="round"/>
+<path d="M71 310v-72m0 42c-31-1-38-23-32-33 22 1 31 16 32 33m0-18c27-5 34-26 27-37-20 4-28 23-27 37m0-25c-23-8-26-31-18-39 18 8 21 25 18 39" fill="#9baa8c" stroke="#789276" stroke-width="2"/>
+<path d="M47 287h46l-7 24H54z" fill="#b66b4e"/>
+<path d="M143 289c-23-2-43-22-37-40 5-16 27-20 34-9 5 8 1 17-7 19" fill="none" stroke="#2c4538" stroke-width="14" stroke-linecap="round"/>
+<path d="M144 296c-15-35-10-83 18-109h77c25 28 30 74 17 109z" fill="#304b3c"/>
+<path d="M156 178l-5-65 37 28c13-5 32-5 45 0l33-28-2 64c-1 31-23 49-53 49-33 0-54-20-55-48" fill="#304b3c"/>
+<path d="M161 132l4 28 13-13zm92 0-5 28-12-13z" fill="#d3b29a"/>
+<path d="M175 177q8-10 16 0m35 0q8-10 16 0" fill="none" stroke="#e6e9cf" stroke-width="3.5" stroke-linecap="round"/>
+<path d="M204 185l7 6 7-6z" fill="#d7ad91"/><path d="M211 191v5m0 0q-7 8-14 0m14 0q7 8 14 0" fill="none" stroke="#e6e9cf" stroke-width="2" stroke-linecap="round"/>
+<path d="M167 186l-29-4m29 11-27 5m115-12 29-4m-29 11 27 5" stroke="#53644b" stroke-width="2" stroke-linecap="round"/>
+<ellipse cx="211" cy="254" rx="23" ry="34" fill="#e0e3c9"/>
+<path d="M163 302v-30m76 30v-30" stroke="#1f382b" stroke-width="3" stroke-linecap="round"/>
+<rect x="255" y="285" width="80" height="24" rx="3" fill="#bb633e"/><path d="M264 292h70m-70 9h70" stroke="#ebc5a5" stroke-width="2"/>
+<rect x="267" y="266" width="76" height="19" rx="3" fill="#9aab8d"/><path d="M276 273h65m-65 6h65" stroke="#e9e8d8" stroke-width="2"/>
+<path d="M97 103v12m-6-6h12m217 65v14m-7-7h14" stroke="#b17a4e" stroke-width="2" stroke-linecap="round"/>
+<path d="M129 67q12-8 24 0" fill="none" stroke="#a9b49c" stroke-width="2"/>
+</svg><div class="art-caption">a little curiosity, a little every day.</div></div>
+</section>
+<div class="topics" aria-label="博客主题"><span class="topics-label">在这里，记录与探索</span><span class="topic"><i aria-hidden="true">↗</i> 技术实践</span><span class="topic"><i aria-hidden="true">✳</i> 学习笔记</span><span class="topic"><i aria-hidden="true">○</i> 生活随笔</span></div>
+<div class="journal-grid" id="journal">
+<section aria-labelledby="journal-title"><div class="section-heading"><h2 id="journal-title">最近的记录<span aria-hidden="true" style="color:var(--accent);font-size:25px"> .</span></h2><span>{{ site.posts.size }} 篇文章 · 持续更新</span></div>
+{% for post in site.posts %}<article class="post-card"><div class="card-meta"><span class="tag">{{ post.categories | first | default: '随笔' | escape }}</span><time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: '%Y.%m.%d' }}</time></div><h3><a href="{{ post.url | relative_url }}">{{ post.title | escape }}</a></h3><p class="card-excerpt">{{ post.excerpt | strip_html | normalize_whitespace | truncate: 145 }}</p><div class="card-bottom" aria-hidden="true"><span>阅读全文</span><span class="arrow">↗</span></div></article>{% else %}<p class="empty">第一篇记录，正在路上。</p>{% endfor %}
+</section>
+<aside class="sidebar" aria-label="关于博客"><section class="profile-card"><div class="profile-icon" aria-hidden="true">h.</div><h2>你好，我是 HappyCat</h2><p>一个用文字收藏日常的人。<br>记录解决问题的过程，也留下生活里微小而美好的瞬间。</p><a href="{{ '/about/' | relative_url }}">更多关于我 ↗</a></section><section class="notes"><h3>写在这里 / A SMALL NOTE</h3><p>不必等到足够好才开始，<br>每一次记录，都有意义。</p><small>保持好奇，保持记录。</small></section></aside>
+</div>
