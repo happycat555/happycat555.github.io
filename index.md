@@ -1,9 +1,8 @@
 ---
 layout: home
+title: "你好，欢迎来到 HappyCat 的博客"
 list_title: 最新文章
 ---
-
-# 你好，欢迎来到 HappyCat 的博客
 
 记录学习、技术与生活，把想法写下来，让积累看得见。
 
