@@ -7,12 +7,33 @@
 .ann-reading>.back-link{grid-column:1 / -1;justify-self:start}
 .ann-reading>.post{grid-column:1;min-width:0;padding:38px 36px}
 .ann-reading>.ann-dialog{grid-column:2;grid-row:2;position:sticky;top:24px;inset-inline:auto;width:100%;height:auto;max-height:calc(100dvh - 48px);min-width:0;border:1px solid #dce3d4;border-radius:12px;padding:20px;box-shadow:none}
-.ann-reading #ann-close{display:none}
+.ann-reading #ann-close{display:block}
 .ann-dialog h2{font-size:23px}
 .ann-card{padding:14px}
 .ann-selection{right:calc((100vw - min(1120px,100vw - 64px))/2 + 368px)}
 }
 @media print{.reading-shell.ann-reading{display:block;max-width:820px}}
+
+#ann-list{display:flow-root}
+.ann-menu summary{cursor:pointer;font-size:12px;color:#647064;padding:7px 0}
+.ann-menu summary:focus-visible{outline:2px solid #bd5635}
+.ann-menu .ann-tools{padding:8px 0 12px}
+.ann-note.ann-collapsed{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.ann-dialog .ann-expand{font-size:12px;padding:3px 8px;margin-bottom:10px}
+.ann-view{display:flex;gap:8px;margin:14px 0}
+.ann-view button[aria-pressed=true]{background:#263e35;color:white}
+.ann-card:focus-visible{outline:2px solid #bd5635;outline-offset:3px}
+.ann-floating{display:none}
+@media(min-width:1100px){
+.ann-reading.ann-margin>.ann-dialog{position:relative;top:auto;max-height:none;overflow:visible;border:0;background:transparent;padding:0}
+.ann-margin .ann-controls{background:var(--paper);border:1px solid #dce3d4;border-radius:12px;padding:18px}
+.ann-margin .ann-card{margin:0;position:relative}
+.ann-margin .ann-card:before{content:'';position:absolute;left:-18px;top:18px;width:12px;border-top:1px solid #c9b28b}
+.ann-reading.ann-hidden{display:block;max-width:820px}
+.ann-floating{display:block;position:fixed;right:24px;bottom:24px;z-index:70;border:1px solid #cad2c3;border-radius:24px;padding:10px 16px;background:#fffefa;color:#263e35;cursor:pointer;box-shadow:0 4px 16px #263e3515}
+}
+@media(max-width:1099px){.ann-view{display:none}}
+@media print{.ann-floating{display:none!important}}
 </style>
 <script>
 (() => {
@@ -31,19 +52,71 @@
   document.body.append(action);
   const dialog = document.createElement('dialog');
   dialog.className = 'ann-dialog'; dialog.setAttribute('aria-labelledby', 'ann-title');
-  dialog.innerHTML = `<header><h2 id="ann-title">我的批注</h2><button type="button" id="ann-close" aria-label="关闭批注面板">✕</button></header>
-    <p class="ann-help">仅保存在当前浏览器，不会公开。清除浏览器数据会丢失批注，请定期导出备份。</p>
+  dialog.innerHTML = `<div class="ann-controls"><header><h2 id="ann-title">我的批注</h2><button type="button" id="ann-close" aria-label="关闭批注面板">✕</button></header>
+    <div class="ann-view" aria-label="批注显示方式"><button type="button" id="ann-margin" aria-pressed="true">段落旁注</button><button type="button" id="ann-all" aria-pressed="false">全部批注</button></div><details class="ann-menu"><summary>管理与备份</summary><p class="ann-help">仅保存在当前浏览器，不会公开。清除浏览器数据会丢失批注，请定期导出备份。</p><div class="ann-tools"><button type="button" id="ann-export">导出备份</button><button type="button" id="ann-import">导入备份</button><input type="file" id="ann-file" accept=".json,application/json" hidden></div></details><button type="button" id="ann-undo" hidden>撤销删除</button>
     <p id="ann-status" role="status" aria-live="polite"></p>
     <form id="ann-form" hidden><p class="ann-quote-label">针对这段原文</p><blockquote id="ann-quote"></blockquote><label for="ann-text">我的想法</label><textarea id="ann-text" rows="6" maxlength="5000" required placeholder="记下你的理解、疑问或补充…"></textarea><div class="ann-actions"><button type="submit" class="ann-primary">保存批注</button><button type="button" id="ann-cancel">取消</button></div></form>
-    <div class="ann-tools"><button type="button" id="ann-export">导出备份</button><button type="button" id="ann-import">导入备份</button><button type="button" id="ann-undo" hidden>撤销删除</button><input type="file" id="ann-file" accept=".json,application/json" hidden></div>
-    <div id="ann-list"></div>`;
+    </div><div id="ann-list"></div>`;
   const reading = content.closest('.reading-shell');
   reading.classList.add('ann-reading');
   reading.append(dialog);
   const desktop = window.matchMedia('(min-width: 1100px)');
   const $ = id => dialog.querySelector('#ann-' + id);
   let records = [], candidate = null, draft = null, draftBase = null, undoId = null;
-  let loadError = false;
+  let loadError = false, view = 'margin', activeId = null, layoutFrame = 0;
+  const expanded = new Set();
+  const toggle = button('隐藏批注', () => dialog.open ? hide() : show());
+  toggle.className = 'ann-floating'; toggle.setAttribute('aria-expanded', 'true');
+  document.body.append(toggle);
+  function syncView() {
+    reading.classList.toggle('ann-margin', desktop.matches && view === 'margin');
+    reading.classList.toggle('ann-hidden', desktop.matches && !dialog.open);
+    $('margin').setAttribute('aria-pressed', String(view === 'margin'));
+    $('all').setAttribute('aria-pressed', String(view === 'all'));
+    toggle.textContent = dialog.open ? '隐藏批注' : '显示批注';
+    toggle.setAttribute('aria-expanded', String(dialog.open));
+    scheduleLayout();
+  }
+  function hide() {
+    if (!discard()) return;
+    clearDraft(); dialog.close(); syncView();
+  }
+  function marksFor(id) {
+    return [...content.querySelectorAll('mark[data-ann-ids]')].filter(m => m.dataset.annIds.split(' ').includes(id));
+  }
+  function activate(id) {
+    activeId = id;
+    for (const mark of content.querySelectorAll('mark[data-ann-ids]')) mark.classList.toggle('ann-focus', mark.dataset.annIds.split(' ').includes(id));
+    for (const card of $('list').children) card.classList.toggle('ann-card-active', card.dataset.noteId === id);
+  }
+  function scheduleLayout() {
+    if (!layoutFrame) layoutFrame = requestAnimationFrame(() => { layoutFrame = 0; layoutNotes(); });
+  }
+  function layoutNotes() {
+    const cards = [...$('list').querySelectorAll('.ann-card')];
+    for (const card of cards) {
+      const text = card.querySelector('.ann-note');
+      card.querySelector('.ann-expand').hidden = !expanded.has(card.dataset.noteId) && text.scrollHeight <= text.clientHeight + 1;
+    }
+    if (!desktop.matches || view !== 'margin' || !dialog.open) {
+      for (const card of cards) card.style.marginTop = '';
+      return;
+    }
+    const top = $('list').getBoundingClientRect().top;
+    let bottom = 0;
+    for (const card of cards) {
+      let anchor = marksFor(card.dataset.noteId)[0];
+      // A quote in a collapsed details block aligns with its visible summary.
+      for (let el = anchor?.parentElement; el && el !== content; el = el.parentElement) {
+        if (el.tagName === 'DETAILS' && !el.open) anchor = el.querySelector('summary') || el;
+      }
+      const wanted = anchor ? anchor.getBoundingClientRect().top - top : bottom + 16;
+      const gap = Math.max(16, Math.round(wanted - bottom));
+      const margin = gap + 'px';
+      if (card.style.marginTop !== margin) card.style.marginTop = margin;
+      bottom += gap + card.getBoundingClientRect().height;
+    }
+  }
   const valid = n => n && typeof n.id === 'string' && /^[\w-]{1,100}$/.test(n.id)
     && typeof n.quote === 'string' && n.quote.trim().length > 0 && n.quote.length <= 2000
     && typeof n.text === 'string' && n.text.trim().length > 0 && n.text.length <= 5000
@@ -119,7 +192,7 @@
         const part = document.createTextNode(node.data.slice(a,b));
         if (!ids.length) { frag.append(part); continue; }
         const mark = document.createElement('mark'); mark.dataset.annIds = ids.join(' ');
-        mark.title = '点击查看批注'; mark.append(part); frag.append(mark);
+        mark.title = '点击查看批注'; mark.tabIndex = 0; mark.setAttribute('role', 'button'); mark.setAttribute('aria-label', '查看批注：' + part.textContent); mark.append(part); frag.append(mark);
       }
       node.replaceWith(frag);
     }
@@ -134,9 +207,10 @@
       if (desktop.matches) dialog.show();
       else dialog.showModal();
     }
+    syncView();
   }
   function clearDraft() {
-    draft = null; draftBase = null; $('form').hidden = true; $('text').value = '';
+    draft = null; draftBase = null; $('form').hidden = true; $('text').value = ''; scheduleLayout();
   }
   function hasUnsaved() { return draft && $('text').value.trim() !== (draft.text || ''); }
   function discard() { return !hasUnsaved() || window.confirm('放弃尚未保存的批注内容？'); }
@@ -154,18 +228,33 @@
     const mark = marks[0];
     for (let el = mark.parentElement; el && el !== content; el = el.parentElement) if (el.tagName === 'DETAILS') el.open = true;
     mark.scrollIntoView({behavior: 'smooth', block: 'center'});
-    mark.classList.add('ann-focus'); setTimeout(() => mark.classList.remove('ann-focus'), 2000);
+    activate(note.id); scheduleLayout();
   }
   function render() {
     paint();
     const notes = records.filter(n => !n.deletedAt).sort((a,b) => (locate(a, content.textContent)?.start ?? Infinity) - (locate(b, content.textContent)?.start ?? Infinity) || a.createdAt.localeCompare(b.createdAt));
     ui.querySelector('#ann-count').textContent = notes.length;
+    cardObserver.disconnect();
     $('list').replaceChildren();
     if (!notes.length) { const p = document.createElement('p'); p.className = 'ann-empty'; p.textContent = '还没有批注。选中正文中的一行或一段文字，即可写下第一条想法；小屏幕请先关闭面板。'; $('list').append(p); }
     for (const note of notes) {
-      const card = document.createElement('article'); card.className = 'ann-card'; card.dataset.noteId = note.id;
+      const card = document.createElement('article'); card.className = 'ann-card'; card.dataset.noteId = note.id; card.tabIndex = 0;
+      card.addEventListener('click', () => activate(note.id));
+      card.addEventListener('focusin', () => activate(note.id));
       const quote = button(note.quote, () => jump(note)); quote.className = 'ann-quote-link'; quote.title = '定位原文';
-      const text = document.createElement('p'); text.textContent = note.text; text.className = 'ann-note';
+      const text = document.createElement('p'); text.textContent = note.text; text.className = 'ann-note'; text.id = 'ann-note-' + note.id;
+      const expand = button('展开全文', () => {
+        if (expanded.has(note.id)) expanded.delete(note.id); else expanded.add(note.id);
+        updateExpansion(); scheduleLayout();
+      });
+      expand.className = 'ann-expand'; expand.setAttribute('aria-controls', text.id);
+      function updateExpansion() {
+        const open = expanded.has(note.id);
+        text.classList.toggle('ann-collapsed', !open);
+        expand.textContent = open ? '收起' : '展开全文';
+        expand.setAttribute('aria-expanded', String(open));
+      }
+      updateExpansion();
       const meta = document.createElement('small'); meta.textContent = new Date(note.updatedAt).toLocaleString('zh-CN', {hour12:false});
       const tools = document.createElement('div'); tools.className = 'ann-actions';
       tools.append(button('编辑', () => edit(note)), button('删除', () => {
@@ -174,10 +263,15 @@
           if (draft?.id === note.id) clearDraft(); undoId = note.id; $('undo').hidden = false; status('已删除，可点击“撤销删除”恢复。');
         }
       }));
-      card.append(quote, text, meta, tools);
+      const menu = document.createElement('details'); menu.className = 'ann-menu';
+      const summary = document.createElement('summary'); summary.textContent = '编辑与删除';
+      menu.append(summary, meta, tools);
+      card.append(quote, text, expand, menu);
       if (!locate(note, content.textContent)) { const hint = document.createElement('p'); hint.className = 'ann-help'; hint.textContent = '原文已变动，暂时无法定位'; card.append(hint); }
       $('list').append(card);
+      cardObserver.observe(card);
     }
+    activate(activeId); scheduleLayout();
   }
   function capture() {
     if (dialog.open && !desktop.matches) return;
@@ -197,7 +291,10 @@
   action.addEventListener('pointerdown', e => e.preventDefault());
   action.addEventListener('click', () => { if (candidate) edit({...candidate, text:''}); });
   ui.querySelector('#ann-open').addEventListener('click', () => { load(); render(); show(); });
-  $('close').addEventListener('click', () => { if (discard()) { clearDraft(); dialog.close(); } });
+  $('close').addEventListener('click', hide);
+  $('margin').addEventListener('click', () => { view = 'margin'; syncView(); });
+  $('all').addEventListener('click', () => { view = 'all'; syncView(); });
+  dialog.addEventListener('close', syncView);
   dialog.addEventListener('cancel', e => { if (!discard()) e.preventDefault(); else clearDraft(); });
   $('cancel').addEventListener('click', () => { if (discard()) clearDraft(); });
   $('form').addEventListener('submit', event => {
@@ -242,18 +339,29 @@
   content.addEventListener('click', event => {
     const mark = event.target.closest('mark[data-ann-ids]');
     if (!mark || !window.getSelection()?.isCollapsed) return;
-    event.preventDefault(); load(); render(); show();
+    event.preventDefault(); show();
     const card = [...$('list').children].find(c => mark.dataset.annIds.split(' ').includes(c.dataset.noteId));
-    if (card) { card.classList.add('ann-card-active'); card.scrollIntoView({block:'nearest'}); }
+    if (card) { activate(card.dataset.noteId); layoutNotes(); card.scrollIntoView({block:'nearest', behavior:'smooth'}); }
+  });
+  content.addEventListener('keydown', event => {
+    if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('mark[data-ann-ids]')) { event.preventDefault(); window.getSelection()?.removeAllRanges(); event.target.click(); }
   });
   window.addEventListener('storage', event => { if (event.key===KEY) { candidate=null; action.hidden=true; load(); render(); } });
   desktop.addEventListener('change', () => {
     const wasOpen = dialog.open;
     if (wasOpen) dialog.close();
-    if (desktop.matches || wasOpen) show();
+    if (wasOpen) show();
+    syncView();
   });
+  const cardObserver = new ResizeObserver(scheduleLayout);
+  const contentObserver = new ResizeObserver(scheduleLayout);
+  contentObserver.observe(content); contentObserver.observe(dialog.querySelector('.ann-controls'));
+  content.addEventListener('toggle', scheduleLayout, true);
+  window.addEventListener('resize', scheduleLayout);
+  document.fonts?.ready.then(scheduleLayout);
   load(); render();
   if (desktop.matches) show();
+  else syncView();
 })();
 
 </script>
