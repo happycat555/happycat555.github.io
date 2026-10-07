@@ -1,0 +1,18 @@
+title: "HappyCat 的博客"
+description: "记录学习、技术与生活，把每一次积累留在这里。"
+author: happycat555
+lang: zh-CN
+timezone: Asia/Shanghai
+url: "https://happycat555.github.io"
+baseurl: ""
+theme: minima
+github_username: happycat555
+show_excerpts: true
+permalink: /posts/:title/
+minima:
+  date_format: "%Y-%m-%d"
+header_pages:
+  - about.md
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
