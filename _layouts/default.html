@@ -25,5 +25,8 @@
 {% if page.layout == 'home' %}{{ content }}{% else %}<div class="reading-shell"><a class="back-link" href="{{ '/' | relative_url }}">← 返回首页</a>{{ content }}</div>{% endif %}
 </main>
 <footer class="site-footer"><div class="shell footer-inner"><div><div class="footer-brand">HappyCat 的博客</div><span>© {{ site.time | date: '%Y' }} {{ site.author | escape }} · 记录，让日常有迹可循。</span></div><div class="footer-links"><a href="{{ '/feed.xml' | relative_url }}">RSS 订阅 ↗</a><a href="https://github.com/{{ site.github_username }}">GitHub ↗</a><a href="#main">回到顶部 ↑</a></div></div></footer>
+{% if page.url == '/posts/programming-language-seven-dimensions/' %}
+{% include annotations.html %}
+{% endif %}
 </body>
 </html>
