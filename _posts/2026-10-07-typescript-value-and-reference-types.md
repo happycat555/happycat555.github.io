@@ -2,8 +2,8 @@
 layout: post
 title: "TypeScript 中的值类型与引用类型"
 date: 2026-10-07
-categories: [学习笔记]
-tags: [TypeScript, JavaScript, 编程基础]
+categories: [编程基础, 类型系统与参数传递]
+tags: [TypeScript, JavaScript, 类型系统, 参数传递]
 excerpt: "从基本类型与对象出发，理解赋值、函数传参、对象比较和深浅拷贝，并分清 const、readonly 与 Object.freeze 的边界。"
 ---
 
