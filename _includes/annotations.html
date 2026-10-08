@@ -53,7 +53,7 @@
   const dialog = document.createElement('dialog');
   dialog.className = 'ann-dialog'; dialog.setAttribute('aria-labelledby', 'ann-title');
   dialog.innerHTML = `<div class="ann-controls"><header><h2 id="ann-title">我的批注</h2><button type="button" id="ann-close" aria-label="关闭批注面板">✕</button></header>
-    <div class="ann-view" aria-label="批注显示方式"><button type="button" id="ann-margin" aria-pressed="true">段落旁注</button><button type="button" id="ann-all" aria-pressed="false">全部批注</button></div><details class="ann-menu"><summary>管理与备份</summary><p class="ann-help">仅保存在当前浏览器，不会公开。清除浏览器数据会丢失批注，请定期导出备份。</p><div class="ann-tools"><button type="button" id="ann-export">导出备份</button><button type="button" id="ann-import">导入备份</button><input type="file" id="ann-file" accept=".json,application/json" hidden></div></details><button type="button" id="ann-undo" hidden>撤销删除</button>
+    <div class="ann-view" aria-label="批注显示方式"><button type="button" id="ann-margin" aria-pressed="true">段落旁注</button><button type="button" id="ann-all" aria-pressed="false">全部批注</button></div><details class="ann-menu"><summary>管理与备份</summary><p class="ann-help">仅保存在当前浏览器，不会公开。清除浏览器数据会丢失批注，请定期导出备份。</p><div class="ann-tools"><a href="{{ '/annotations/' | relative_url }}">集中管理 ↗</a><button type="button" id="ann-export">导出备份</button><button type="button" id="ann-import">导入备份</button><input type="file" id="ann-file" accept=".json,application/json" hidden></div></details><button type="button" id="ann-undo" hidden>撤销删除</button>
     <p id="ann-status" role="status" aria-live="polite"></p>
     <form id="ann-form" hidden><p class="ann-quote-label">针对这段原文</p><blockquote id="ann-quote"></blockquote><label for="ann-text">我的想法</label><textarea id="ann-text" rows="6" maxlength="5000" required placeholder="记下你的理解、疑问或补充…"></textarea><div class="ann-actions"><button type="submit" class="ann-primary">保存批注</button><button type="button" id="ann-cancel">取消</button></div></form>
     </div><div id="ann-list"></div>`;
@@ -346,7 +346,7 @@
   content.addEventListener('keydown', event => {
     if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('mark[data-ann-ids]')) { event.preventDefault(); window.getSelection()?.removeAllRanges(); event.target.click(); }
   });
-  window.addEventListener('storage', event => { if (event.key===KEY) { candidate=null; action.hidden=true; load(); render(); } });
+  window.addEventListener('storage', event => { if (event.key===KEY || event.key===null) { candidate=null; action.hidden=true; load(); render(); } });
   desktop.addEventListener('change', () => {
     const wasOpen = dialog.open;
     if (wasOpen) dialog.close();
@@ -362,6 +362,28 @@
   load(); render();
   if (desktop.matches) show();
   else syncView();
+  function followAnnotationLink() {
+    if (!location.hash.startsWith('#annotation=')) return;
+    let id;
+    try { id = decodeURIComponent(location.hash.slice(12)); } catch { return; }
+    if (!/^[\w-]{1,100}$/.test(id) || !discard()) return;
+    const note = records.find(n => n.id === id);
+    if (!note || note.deletedAt) {
+      show(); status('这条批注在当前浏览器中不存在或已删除。可到“集中管理”的回收站查看。'); return;
+    }
+    if (!locate(note, content.textContent)) {
+      view = 'all'; show(); activate(id);
+      status('原文已变动，暂时无法定位。这条批注仍完整保留。');
+      const card = [...$('list').children].find(c => c.dataset.noteId === id);
+      card?.scrollIntoView({block:'center'}); return;
+    }
+    if (desktop.matches) show();
+    jump(note); syncView();
+    marksFor(id)[0]?.focus({preventScroll:true});
+  }
+  window.addEventListener('hashchange', followAnnotationLink);
+  requestAnimationFrame(followAnnotationLink);
+
 })();
 
 </script>
