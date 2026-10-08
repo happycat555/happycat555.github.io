@@ -2,8 +2,8 @@
 layout: post
 title: "TS 与 C# 类型系统 & 传参笔记"
 date: 2026-10-08
-categories: [学习笔记]
-tags: [TypeScript, JavaScript, CSharp, 类型系统, 参数传递]
+categories: [编程基础, 类型系统与参数传递]
+tags: [TypeScript, JavaScript, "C#", 字符串, 类型系统, 参数传递]
 excerpt: "对比 TypeScript 与 C# 的类型系统、字符串、对象共享及参数传递，梳理按值传递、引用拷贝与 ref / out 的区别。"
 ---
 
