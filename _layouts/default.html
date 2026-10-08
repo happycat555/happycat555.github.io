@@ -19,10 +19,10 @@
 <a class="skip" href="#main">跳转到正文</a>
 <header class="site-header"><div class="shell header-inner">
 <a class="brand" href="{{ '/' | relative_url }}" aria-label="HappyCat 的博客首页"><span class="brand-mark" aria-hidden="true">h.</span><span class="brand-name">HappyCat<small>小小记录，大大世界</small></span></a>
-<nav class="nav" aria-label="主导航"><a href="{{ '/' | relative_url }}" {% if page.url == '/' %}aria-current="page"{% endif %}>首页</a><a href="{{ '/about/' | relative_url }}" {% if page.url == '/about/' %}aria-current="page"{% endif %}>关于</a><a class="github" href="https://github.com/{{ site.github_username }}">GitHub ↗</a></nav>
+<nav class="nav" aria-label="主导航"><a href="{{ '/' | relative_url }}" {% if page.url == '/' %}aria-current="page"{% endif %}>首页</a><a href="{{ '/annotations/' | relative_url }}" {% if page.annotation_manager %}aria-current="page"{% endif %}>我的批注</a><a href="{{ '/about/' | relative_url }}" {% if page.url == '/about/' %}aria-current="page"{% endif %}>关于</a><a class="github" href="https://github.com/{{ site.github_username }}">GitHub ↗</a></nav>
 </div></header>
 <main id="main" class="shell site-main" tabindex="-1">
-{% if page.layout == 'home' %}{{ content }}{% else %}<div class="reading-shell"><a class="back-link" href="{{ '/' | relative_url }}">← 返回首页</a>{{ content }}</div>{% endif %}
+{% if page.layout == 'home' or page.annotation_manager %}{{ content }}{% else %}<div class="reading-shell"><a class="back-link" href="{{ '/' | relative_url }}">← 返回首页</a>{{ content }}</div>{% endif %}
 </main>
 <footer class="site-footer"><div class="shell footer-inner"><div><div class="footer-brand">HappyCat 的博客</div><span>© {{ site.time | date: '%Y' }} {{ site.author | escape }} · 记录，让日常有迹可循。</span></div><div class="footer-links"><a href="{{ '/feed.xml' | relative_url }}">RSS 订阅 ↗</a><a href="https://github.com/{{ site.github_username }}">GitHub ↗</a><a href="#main">回到顶部 ↑</a></div></div></footer>
 {% if page.collection == 'posts' %}
