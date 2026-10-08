@@ -2,7 +2,7 @@
 layout: post
 title: "编程语言的七大基础维度（以 TypeScript 为参照）"
 date: 2026-10-07
-categories: [学习笔记]
+categories: [编程基础, 基础知识地图]
 tags: [TypeScript, JavaScript, 编程基础]
 excerpt: "从数据与类型、变量、运算符、控制流程、函数、代码组织到运行环境，用七个维度建立编程语言基础知识地图。"
 ---
